@@ -1,3 +1,55 @@
+function map(x, in_min, in_max, out_min, out_max) {
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+function curve(t, max){
+  return ((1 + Math.cos(Math.PI + (t/max) * Math.PI)) / 2) * max;
+}
+
+var lpstart = 22050.0;
+var hpstart = 0.0;
+var distart = 1.0;
+
+var lptarget = 1000.0;
+var hptarget = 250.0;
+var distarget = 3.0;
+var counter = 0;
+var length = 3000.0;
+var interval;
+function fadeOut(length) {
+  length = length * 100.0;
+  clearInterval(interval);
+  interval = setInterval(function(){
+    if (counter > length) {
+      clearInterval(interval);
+      return;
+    }
+
+    var lpp = document.querySelector("input#lowpass");
+    if (lpp) {
+      lpval = curve(map(counter, 0, length, lpstart, lptarget), 22050.0);
+      lpp.value = lpval;
+      lp.frequency.value = lpval;
+    }
+
+    var hpp = document.querySelector("input#highpass");
+    if (hpp) {
+      hpval = curve(map(counter, 0, length, hpstart, hptarget), 250.0);
+      hpp.value = hpval;
+      hp.frequency.value = hpval;
+    }
+
+    var wv = document.querySelector("input#distort");
+    if (wv) {
+      wval = curve(map(counter, 0, length, distart, distarget), 3.0);
+      wv.value = wval;
+      waveshaper.setDrive(wval);
+    }
+
+    counter++;
+  }, 10);
+}
+
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
 var audioContext = new AudioContext();
 var audioInput = null,
@@ -49,7 +101,7 @@ var audioInput = null,
 var rafID = null;
 var analyser1;
 var analyserView1;
-var constraints = 
+var constraints =
 {
   audio: {
       optional: [{ echoCancellation: false }]
@@ -78,7 +130,7 @@ function cancelAnalyserUpdates() {
 function updateAnalysers(time) {
     analyserView1.doFrequencyAnalysis( analyser1 );
     analyserView2.doFrequencyAnalysis( analyser2 );
-    
+
     rafID = window.requestAnimationFrame( updateAnalysers );
 }
 
@@ -114,6 +166,7 @@ var useFeedbackReduction = true;
 function gotStream(stream) {
     // Create an AudioNode from the stream.
 //    realAudioInput = audioContext.createMediaStreamSource(stream);
+
     var input = audioContext.createMediaStreamSource(stream);
 
 /*
@@ -129,7 +182,6 @@ function gotStream(stream) {
     if (useFeedbackReduction) {
         audioInput.connect( createLPInputFilter() );
         audioInput = lpInputFilter;
-        
     }
     // create mix gain nodes
     outputMix = audioContext.createGain();
@@ -185,7 +237,7 @@ function initAudio() {
     irRRequest.open("GET", "sounds/cardiod-rear-levelled.wav", true);
     irRRequest.responseType = "arraybuffer";
     irRRequest.onload = function() {
-        audioContext.decodeAudioData( irRRequest.response, 
+        audioContext.decodeAudioData( irRRequest.response,
             function(buffer) { reverbBuffer = buffer; } );
     }
     irRRequest.send();
@@ -260,6 +312,10 @@ function crossfade(value) {
 var lastEffect = -1;
 
 function changeEffect() {
+    lp1 = null;
+    lp2 = null;
+    hp1 = null;
+    hp2 = null;
     lfo = null;
     dtime = null;
     dregen = null;
@@ -297,7 +353,7 @@ function changeEffect() {
     ngGate = null;
     bitCrusher = null;
 
-    if (currentEffectNode) 
+    if (currentEffectNode)
         currentEffectNode.disconnect();
     if (effectInput)
         effectInput.disconnect();
@@ -310,85 +366,20 @@ function changeEffect() {
     effectControls.children[effect].classList.add("display");
 
     switch (effect) {
-        case 0: // Delay
-            currentEffectNode = createDelay();
-            break;
-        case 1: // Reverb
+        case 0: // Reverb
             currentEffectNode = createReverb();
             break;
-        case 2: // Distortion
+        case 1: // Distortion
             currentEffectNode = createDistortion();
             break;
-        case 3: // Telephone
+        case 2: // Telephone
             currentEffectNode = createTelephonizer();
             break;
-        case 4: // GainLFO
-            currentEffectNode = createGainLFO();
-            break;
-        case 5: // Chorus
-            currentEffectNode = createChorus();
-            break;
-        case 6: // Flange
-            currentEffectNode = createFlange();
-            break;
-        case 7: // Ringmod
-            currentEffectNode = createRingmod();
-            break;
-        case 8: // Stereo Chorus
-            currentEffectNode = createStereoChorus();
-            break;
-        case 9: // Stereo Flange
-            currentEffectNode = createStereoFlange();
-            break;
-        case 10: // Pitch shifting
+        case 3: // Pitch shifting
             currentEffectNode = createPitchShifter();
             break;
-        case 11: // Mod Delay 
-            currentEffectNode = createModDelay();
-            break;
-        case 12: // Ping-pong delay
-            var pingPong = createPingPongDelay(audioContext, (audioInput == realAudioInput), 0.3, 0.4 );
-            pingPong.output.connect( wetGain );
-            currentEffectNode = pingPong.input;
-            break;
-        case 13: // LPF LFO
-            currentEffectNode = createFilterLFO();
-            break;
-        case 14: // Envelope Follower
-            currentEffectNode = createEnvelopeFollower();
-            break;
-        case 15: // Autowah
-            currentEffectNode = createAutowah();
-            break;
-        case 16: // Noise gate
-            currentEffectNode = createNoiseGate();
-            break;
-        case 17: // Wah Bass
-            var pingPong = createPingPongDelay(audioContext, (audioInput == realAudioInput), 0.5, 0.5 );
-            pingPong.output.connect( wetGain );
-            pingPong.input.connect(wetGain);
-            var tempWetGain = wetGain;
-            wetGain = pingPong.input;
-            wetGain = createAutowah();
-            currentEffectNode = createPitchShifter();
-            wetGain = tempWetGain;
-            break;
-        case 18: // Distorted Wah Chorus
-            var tempWetGain = wetGain;
-            wetGain = createStereoChorus();
-            wetGain = createDistortion();
-            currentEffectNode = createAutowah();
-            wetGain = tempWetGain;
-            waveshaper.setDrive(20);
-            break;
-        case 19: // Vibrato
-            currentEffectNode = createVibrato();
-            break;
-        case 20: // BitCrusher
+        case 4: // BitCrusher
             currentEffectNode = createBitCrusher();
-            break;
-        case 21: // Apollo effect
-            currentEffectNode = createApolloEffect();
             break;
         default:
             break;
@@ -396,29 +387,31 @@ function changeEffect() {
     audioInput.connect( currentEffectNode );
 }
 
-
+var waveshaper = null;
 
 
 function createTelephonizer() {
     // I double up the filters to get a 4th-order filter = faster fall-off
-    var lpf1 = audioContext.createBiquadFilter();
-    lpf1.type = "lowpass";
-    lpf1.frequency.value = 2000.0;
-    var lpf2 = audioContext.createBiquadFilter();
-    lpf2.type = "lowpass";
-    lpf2.frequency.value = 2000.0;
-    var hpf1 = audioContext.createBiquadFilter();
-    hpf1.type = "highpass";
-    hpf1.frequency.value = 500.0;
-    var hpf2 = audioContext.createBiquadFilter();
-    hpf2.type = "highpass";
-    hpf2.frequency.value = 500.0;
-    lpf1.connect( lpf2 );
-    lpf2.connect( hpf1 );
-    hpf1.connect( hpf2 );
-    hpf2.connect( wetGain );
-    currentEffectNode = lpf1;
-    return( lpf1 );
+    var lpf = audioContext.createBiquadFilter();
+    lpf.type = "lowpass";
+    lpf.frequency.value = parseFloat( document.getElementById("lowpass").value );
+    var hpf = audioContext.createBiquadFilter();
+    hpf.type = "highpass";
+    hpf.frequency.value = parseFloat( document.getElementById("highpass").value );
+
+    if (!waveshaper)
+        waveshaper = new WaveShaper( audioContext );
+
+    lpf.connect( hpf );
+    hpf.connect( wetGain );
+
+    currentEffectNode = lpf;
+    lp = lpf;
+    hp = hpf;
+
+    waveshaper.output.connect( lpf );
+    waveshaper.setDrive(1);
+    return waveshaper.input;
 }
 
 function createDelay() {
@@ -445,7 +438,6 @@ function createReverb() {
     return convolver;
 }
 
-var waveshaper = null;
 
 function createDistortion() {
     if (!waveshaper)
@@ -662,7 +654,7 @@ function createStereoChorus() {
 /*
     Add modulation to delayed signal akin to ElectroHarmonix MemoryMan Guitar Pedal.
     Simple combination of effects with great output hear on lots of records.
-    
+
     FX Chain ASCII PIC:
                 v- FEEDBACK -|
     INPUT -> DELAY -> CHORUS -> OUTPUT
