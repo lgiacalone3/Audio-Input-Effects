@@ -6,15 +6,22 @@ function curve(t, max){
   return ((1 + Math.cos(Math.PI + (t/max) * Math.PI)) / 2) * max;
 }
 
+function exp(t, max, offset){
+  var exp = (((t/max) ** 3) * max) + offset;
+  exp = exp > max ? max : exp;
+  console.log(t, max, exp);
+  return exp;
+}
+
 var lpstart = 22050.0;
 var hpstart = 0.0;
 var distart = 1.0;
 
-var lptarget = 1000.0;
+var lptarget = 750.0;
 var hptarget = 250.0;
 var distarget = 3.0;
+
 var counter = 0;
-var length = 3000.0;
 var interval;
 function fadeOut(length) {
   length = length * 100.0;
@@ -27,7 +34,7 @@ function fadeOut(length) {
 
     var lpp = document.querySelector("input#lowpass");
     if (lpp) {
-      lpval = curve(map(counter, 0, length, lpstart, lptarget), 22050.0);
+      lpval = exp(map(counter, 0, length, lpstart, lptarget), 22050.0, 750.0);
       lpp.value = lpval;
       lp.frequency.value = lpval;
     }
@@ -38,16 +45,38 @@ function fadeOut(length) {
       hpp.value = hpval;
       hp.frequency.value = hpval;
     }
-
-    var wv = document.querySelector("input#distort");
-    if (wv) {
-      wval = curve(map(counter, 0, length, distart, distarget), 3.0);
-      wv.value = wval;
-      waveshaper.setDrive(wval);
-    }
+    //
+    // var wv = document.querySelector("input#distort");
+    // if (wv) {
+    //   wval = curve(map(counter, 0, length, distart, distarget), 3.0);
+    //   wv.value = wval;
+    //   waveshaper.setDrive(wval);
+    // }
 
     counter++;
   }, 10);
+}
+
+function stopReset() {
+  counter = 0;
+  clearInterval(interval);
+  var lpp = document.querySelector("input#lowpass");
+  if (lpp) {
+    lpp.value = lpstart;
+    lp.frequency.value = lpstart;
+  }
+
+  var hpp = document.querySelector("input#highpass");
+  if (hpp) {
+    hpp.value = hpstart;
+    hp.frequency.value = hpstart;
+  }
+
+  // var wv = document.querySelector("input#distort");
+  // if (wv) {
+  //   wv.value = distart;
+  //   waveshaper.setDrive(distart);
+  // }
 }
 
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -297,8 +326,9 @@ function keyPress(ev) {
 }
 
 window.addEventListener('load', initAudio );
+window.addEventListener('load', function() {  } );
 
-window.addEventListener('keydown', keyPress );
+// window.addEventListener('keydown', keyPress );
 
 function crossfade(value) {
   // equal-power crossfade
@@ -399,8 +429,8 @@ function createTelephonizer() {
     hpf.type = "highpass";
     hpf.frequency.value = parseFloat( document.getElementById("highpass").value );
 
-    if (!waveshaper)
-        waveshaper = new WaveShaper( audioContext );
+    // if (!waveshaper)
+    //     waveshaper = new WaveShaper( audioContext );
 
     lpf.connect( hpf );
     hpf.connect( wetGain );
@@ -409,9 +439,9 @@ function createTelephonizer() {
     lp = lpf;
     hp = hpf;
 
-    waveshaper.output.connect( lpf );
-    waveshaper.setDrive(1);
-    return waveshaper.input;
+    // waveshaper.output.connect( lpf );
+    // waveshaper.setDrive(1);
+    return lpf;
 }
 
 function createDelay() {

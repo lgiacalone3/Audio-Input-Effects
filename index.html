@@ -45,6 +45,7 @@
 
 		length in seconds: <input id="lengtho" value="30">
 		<button onclick="fadeOut(document.querySelector('input#lengtho').value);">fade and distort</button>
+		<button onclick="stopReset()">stop and reset</button>
 <!--
 		<button id="apollo">quindar beep</button>
 -->
@@ -88,7 +89,7 @@ onInput="crossfade( event.target.value );">
 		q: <input id="q" type="range" min="0.01" max="10" step=".01" value="1" style="height: 20px; width: 400px;" onInput="if (lp) { lp.Q.value = event.target.value; hp.Q.value = event.target.value; }"><br>
 		<br>
 		<br>
-		distortion: <input id="distort" type="range" min="1" max="20" step="0.01" value="1" style="height: 20px; width: 600px;" onInput="if (waveshaper) waveshaper.setDrive(event.target.value);">
+		<!-- distortion: <input id="distort" type="range" min="0" max="20" step="0.01" value="1" style="height: 20px; width: 600px;" onInput="if (waveshaper) waveshaper.setDrive(event.target.value);"> -->
 		<br>
 		<br>
 		<!-- Pitch-shift: <input id="octpitch" type="range" min="-1" max="1" step="0.05" value="0" style="height: 20px; width: 600px;" onInput="if (effect.setPitchOffset) effect.setPitchOffset(event.target.value);"><br> -->
